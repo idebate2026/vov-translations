@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VOV Translation Editor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: #e4e2dd;
+    --text: #1a1a18;
+    --text-muted: #888880;
+    --accent: #c0392b;
+    --accent-light: #fdf2f1;
+    --yellow: #fff8e1;
+    --yellow-border: #f0c040;
+    --mono: 'Courier New', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    background: var(--text);
+    color: #fff;
+    padding: 0 24px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 14px; font-weight: 600; letter-spacing: 0.04em; }
+  header .lang-tabs { display: flex; gap: 4px; }
+  header .lang-tab {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.6);
+    padding: 5px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    transition: all 0.15s;
+  }
+  header .lang-tab:hover { border-color: rgba(255,255,255,0.5); color: #fff; }
+  header .lang-tab.active { background: #fff; color: var(--text); border-color: #fff; }
+
+  header .header-right { display: flex; align-items: center; gap: 12px; }
+  header .save-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 7px 18px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  header .save-btn:hover { opacity: 0.85; }
+  header .save-btn:disabled { opacity: 0.4; cursor: default; }
+
+  /* Layout */
+  .app { display: flex; flex: 1; overflow: hidden; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 260px;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+  .sidebar-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+  .lesson-list { overflow-y: auto; flex: 1; }
+  .lesson-item {
+    padding: 11px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    line-height: 1.4;
+    transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .lesson-item:hover { background: var(--bg); }
+  .lesson-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .lesson-item .badge {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--yellow-border);
+    flex-shrink: 0;
+    display: none;
+  }
+  .lesson-item.has-changes .badge { display: block; }
+
+  /* Editor */
+  .editor { flex: 1; overflow-y: auto; padding: 24px 32px; }
+
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    gap: 8px;
+  }
+  .empty-state p { font-size: 14px; }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .field-label {
+    grid-column: 1 / -1;
+    background: var(--bg);
+    padding: 7px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .field-label.changed {
+    background: var(--yellow);
+    border-bottom-color: var(--yellow-border);
+  }
+  .field-label .retranslate-btn {
+    background: none;
+    border: 1px solid var(--yellow-border);
+    color: #7a6000;
+    font-size: 11px;
+    padding: 2px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .field-label .retranslate-btn:hover { background: var(--yellow-border); color: #fff; }
+
+  .field-source, .field-target {
+    background: var(--surface);
+    padding: 14px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .field-source { color: var(--text-muted); }
+  .field-target textarea {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    line-height: 1.6;
+    font-family: var(--sans);
+    color: var(--text);
+    resize: none;
+    background: transparent;
+    min-height: 60px;
+  }
+  .field-source.is-html, .field-target.is-html textarea {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  /* Setup modal */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: 8px;
+    padding: 32px;
+    width: 480px;
+    max-width: 90vw;
+  }
+  .modal h2 { font-size: 18px; margin-bottom: 8px; }
+  .modal p { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; }
+  .modal label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.04em; }
+  .modal input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 9px 12px;
+    font-size: 13px;
+    margin-bottom: 16px;
+    outline: none;
+    font-family: var(--mono);
+  }
+  .modal input:focus { border-color: var(--accent); }
+  .modal .modal-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+  }
+  .modal .modal-btn:hover { opacity: 0.85; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--text);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 200;
+  }
+  .toast.show { opacity: 1; }
+
+  .col-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 8px;
+    padding: 0 2px;
+  }
+  .col-header span {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>VOV · Translation Editor</h1>
+  <div class="lang-tabs" id="langTabs"></div>
+  <div class="header-right">
+    <button class="save-btn" id="saveBtn" disabled>Save changes</button>
+  </div>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">Lessons <span id="lessonCount"></span></div>
+    <div class="lesson-list" id="lessonList"></div>
+  </aside>
+  <main class="editor" id="editor">
+    <div class="empty-state">
+      <p>Select a lesson to start editing</p>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="setupModal">
+  <div class="modal">
+    <h2>Welcome to the editor</h2>
+    <p>Enter your credentials to get started. These are stored in your browser only and never sent anywhere except GitHub and Webflow.</p>
+    <label>GitHub Personal Access Token</label>
+    <input type="password" id="githubToken" placeholder="ghp_..." />
+    <label>Webflow API Token</label>
+    <input type="password" id="webflowToken" placeholder="Your Webflow token" />
+    <label>DeepL API Key</label>
+    <input type="password" id="deeplKey" placeholder="Your DeepL key" />
+    <button class="modal-btn" id="setupBtn">Get started</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const REPO_OWNER = 'idebate2026';
+const REPO_NAME = 'vov-translations';
+const COLLECTION_ID = '69bac73972ec1831da6af8e8';
+const LANGUAGES = ['nl', 'de', 'it', 'hr'];
+const LANG_NAMES = { nl: 'Dutch', de: 'German', it: 'Italian', hr: 'Croatian' };
+
+const PLAIN_FIELDS = ['name', 'time', 'duration', 'last-update', 'level', 'lectures'];
+const RICH_FIELDS = ['content-01', 'content-02', 'content-03', 'content-04', 'content-05', 'extra-text'];
+const ALL_FIELDS = [...PLAIN_FIELDS, ...RICH_FIELDS];
+
+const FIELD_LABELS = {
+  'name': 'Title', 'time': 'Time', 'duration': 'Duration', 'last-update': 'Last update',
+  'level': 'Level', 'lectures': 'Lectures / Group size',
+  'content-01': 'Lesson plan', 'content-02': 'Objectives', 'content-03': 'Learning outcomes',
+  'content-04': 'Materials & tools', 'content-05': 'Assessment & tips', 'extra-text': 'Appendix'
+};
+
+let githubToken = '', webflowToken = '', deeplKey = '';
+let currentLang = 'nl';
+let lessons = []; // { id, slug, name, fields: { fieldName: englishValue }, translations: { nl: { fieldName: value } } }
+let currentLessonIndex = null;
+let dirty = false;
+
+// ---- Setup ----
+function loadCredentials() {
+  githubToken = localStorage.getItem('vov_gh') || '';
+  webflowToken = localStorage.getItem('vov_wf') || '';
+  deeplKey = localStorage.getItem('vov_dl') || '';
+  if (githubToken && webflowToken && deeplKey) {
+    document.getElementById('setupModal').style.display = 'none';
+    init();
+  }
+}
+
+document.getElementById('setupBtn').addEventListener('click', () => {
+  githubToken = document.getElementById('githubToken').value.trim();
+  webflowToken = document.getElementById('webflowToken').value.trim();
+  deeplKey = document.getElementById('deeplKey').value.trim();
+  if (!githubToken || !webflowToken || !deeplKey) return alert('Please fill in all fields.');
+  localStorage.setItem('vov_gh', githubToken);
+  localStorage.setItem('vov_wf', webflowToken);
+  localStorage.setItem('vov_dl', deeplKey);
+  document.getElementById('setupModal').style.display = 'none';
+  init();
+});
+
+// ---- Language tabs ----
+function buildLangTabs() {
+  const container = document.getElementById('langTabs');
+  LANGUAGES.forEach(lang => {
+    const btn = document.createElement('button');
+    btn.className = 'lang-tab' + (lang === currentLang ? ' active' : '');
+    btn.textContent = lang.toUpperCase();
+    btn.addEventListener('click', () => {
+      currentLang = lang;
+      document.querySelectorAll('.lang-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (currentLessonIndex !== null) renderEditor(currentLessonIndex);
+    });
+    container.appendChild(btn);
+  });
+}
+
+// ---- Fetch all lessons from Webflow ----
+async function fetchAllLessons() {
+  let all = [], offset = 0, total = Infinity;
+  while (all.length < total) {
+    const res = await fetch(`https://api.webflow.com/v2/collections/${COLLECTION_ID}/items?limit=100&offset=${offset}`, {
+      headers: { 'Authorization': `Bearer ${webflowToken}`, 'accept': 'application/json' }
+    });
+    const data = await res.json();
+    total = data.pagination.total;
+    all = all.concat(data.items);
+    offset += 100;
+    if (data.items.length === 0) break;
+  }
+  return all;
+}
+
+// ---- Fetch existing translations from GitHub ----
+async function fetchTranslationFile(lang) {
+  try {
+    const res = await fetch(`https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${lang}.json?t=${Date.now()}`);
+    if (!res.ok) return {};
+    const data = await res.json();
+    // data is array of { id, slug, fields }
+    const map = {};
+    data.forEach(item => { map[item.id] = item; });
+    return map;
+  } catch { return {}; }
+}
+
+// ---- Init ----
+async function init() {
+  showToast('Loading lessons…');
+  try {
+    const [webflowItems, nlMap, deMap, itMap, hrMap] = await Promise.all([
+      fetchAllLessons(),
+      fetchTranslationFile('nl'),
+      fetchTranslationFile('de'),
+      fetchTranslationFile('it'),
+      fetchTranslationFile('hr'),
+    ]);
+
+    const translationMaps = { nl: nlMap, de: deMap, it: itMap, hr: hrMap };
+
+    lessons = webflowItems.map(item => {
+      const fields = {};
+      ALL_FIELDS.forEach(f => { if (item.fieldData[f]) fields[f] = item.fieldData[f]; });
+      const translations = {};
+      LANGUAGES.forEach(lang => {
+        translations[lang] = translationMaps[lang][item.id]?.fields || {};
+      });
+      return { id: item.id, slug: item.fieldData.slug, name: item.fieldData.name, fields, translations };
+    });
+
+    lessons.sort((a, b) => a.name.localeCompare(b.name));
+    buildLessonList();
+    document.getElementById('lessonCount').textContent = `(${lessons.length})`;
+    showToast('Ready');
+  } catch (err) {
+    showToast('Error loading — check your tokens');
+    console.error(err);
+  }
+}
+
+// ---- Lesson list ----
+function buildLessonList() {
+  const container = document.getElementById('lessonList');
+  container.innerHTML = '';
+  lessons.forEach((lesson, i) => {
+    const el = document.createElement('div');
+    el.className = 'lesson-item';
+    el.dataset.index = i;
+    el.innerHTML = `<span class="badge"></span><span>${lesson.name}</span>`;
+    el.addEventListener('click', () => selectLesson(i));
+    container.appendChild(el);
+  });
+}
+
+function selectLesson(index) {
+  if (dirty && !confirm('You have unsaved changes. Discard them?')) return;
+  currentLessonIndex = index;
+  dirty = false;
+  document.getElementById('saveBtn').disabled = true;
+  document.querySelectorAll('.lesson-item').forEach((el, i) => {
+    el.classList.toggle('active', i === index);
+  });
+  renderEditor(index);
+}
+
+// ---- Editor ----
+function renderEditor(index) {
+  const lesson = lessons[index];
+  const editor = document.getElementById('editor');
+
+  editor.innerHTML = `
+    <div class="col-header">
+      <span>English (source)</span>
+      <span>${LANG_NAMES[currentLang]}</span>
+    </div>
+  `;
+
+  ALL_FIELDS.forEach(field => {
+    const source = lesson.fields[field];
+    const target = lesson.translations[currentLang][field];
+    if (!source && !target) return;
+
+    const isHtml = RICH_FIELDS.includes(field);
+    const label = FIELD_LABELS[field] || field;
+
+    const row = document.createElement('div');
+    row.className = 'field-row';
+    row.dataset.field = field;
+
+    const labelEl = document.createElement('div');
+    labelEl.className = 'field-label';
+    labelEl.innerHTML = `<span>${label}</span>`;
+    row.appendChild(labelEl);
+
+    const sourceEl = document.createElement('div');
+    sourceEl.className = 'field-source' + (isHtml ? ' is-html' : '');
+    sourceEl.textContent = source || '—';
+    row.appendChild(sourceEl);
+
+    const targetEl = document.createElement('div');
+    targetEl.className = 'field-target' + (isHtml ? ' is-html' : '');
+    const ta = document.createElement('textarea');
+    ta.value = target || '';
+    ta.placeholder = 'No translation yet';
+    ta.addEventListener('input', () => {
+      autoResize(ta);
+      lesson.translations[currentLang][field] = ta.value;
+      dirty = true;
+      document.getElementById('saveBtn').disabled = false;
+    });
+    targetEl.appendChild(ta);
+    row.appendChild(targetEl);
+
+    editor.appendChild(row);
+    autoResize(ta);
+  });
+}
+
+function autoResize(ta) {
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+}
+
+// ---- Save to GitHub ----
+async function saveToGitHub() {
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    // Build full JSON for current language
+    const output = lessons.map(l => ({
+      id: l.id,
+      slug: l.slug,
+      fields: l.translations[currentLang]
+    }));
+
+    const content = JSON.stringify(output, null, 2);
+    const encoded = btoa(unescape(encodeURIComponent(content)));
+    const filename = `${currentLang}.json`;
+
+    // Get current file SHA (needed for update)
+    let sha = null;
+    try {
+      const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filename}`, {
+        headers: { 'Authorization': `Bearer ${githubToken}`, 'Accept': 'application/vnd.github+json' }
+      });
+      if (res.ok) { const data = await res.json(); sha = data.sha; }
+    } catch {}
+
+    // Commit
+    const body = { message: `Update ${currentLang} translations`, content: encoded };
+    if (sha) body.sha = sha;
+
+    const commitRes = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${filename}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${githubToken}`,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!commitRes.ok) throw new Error(await commitRes.text());
+    dirty = false;
+    btn.textContent = 'Save changes';
+    showToast(`${filename} saved to GitHub ✓`);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = 'Save changes';
+    showToast('Save failed — check console');
+    console.error(err);
+  }
+}
+
+document.getElementById('saveBtn').addEventListener('click', saveToGitHub);
+
+// ---- Toast ----
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ---- Start ----
+buildLangTabs();
+loadCredentials();
+</script>
+</body>
+</html>
