@@ -4,6 +4,10 @@
     "slug": "adjudication-in-debate"
   },
   {
+    "id": "69bac73972ec1831da6afa1f",
+    "slug": "ai-and-work-debate"
+  },
+  {
     "id": "69bac73972ec1831da6afa2c",
     "slug": "ban-circulation-cars-city-debate"
   },
@@ -68,6 +72,14 @@
     "slug": "exploring-opinions-and-building-arguments"
   },
   {
+    "id": "69bac73972ec1831da6afa23",
+    "slug": "gender-equality-debate"
+  },
+  {
+    "id": "69bac73972ec1831da6afa22",
+    "slug": "gender-equality-modern-society-debate"
+  },
+  {
     "id": "6a27ee4ccb6ca3934884f1b5",
     "slug": "how-to-create-a-model-in-policy-debate"
   },
@@ -83,6 +95,7 @@
     "id": "69c55817f4c4475dacabb6a8",
     "slug": "impact-eu-instutions-on-europeans-debate"
   },
+  {},
   {
     "id": "69bac73972ec1831da6afa28",
     "slug": "individual-rights-collective-rights-debate"
@@ -96,6 +109,10 @@
     "slug": "motion-analysis-in-debate"
   },
   {
+    "id": "69bac73972ec1831da6afa20",
+    "slug": "non-verbal-communication-business-debate"
+  },
+  {
     "id": "6a28208d64a76cb1f54674e3",
     "slug": "public-speaking-in-debate"
   },
@@ -104,8 +121,20 @@
     "slug": "questioning-in-debate"
   },
   {
+    "id": "69bac73972ec1831da6afa1e",
+    "slug": "road-rage-debate"
+  },
+  {
+    "id": "69bac73972ec1831da6afa21",
+    "slug": "saying-sorry-debate"
+  },
+  {
     "id": "69bac73972ec1831da6afa25",
     "slug": "schengen-crisis-debate"
+  },
+  {
+    "id": "69bac73972ec1831da6afa1d",
+    "slug": "school-role-violence-aggression-debate"
   },
   {
     "id": "69bac73972ec1831da6afa2a",
